@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>5도권 도미넌트7 피아노 샘플</title>
+<script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+<style>
+body { text-align:center; font-family: Arial; background:#f0f0f0; margin:0; padding:0; }
+#timer { position:absolute; top:10px; right:20px; font-size:24px; font-weight:bold; color:#333; }
+#centerCircle {
+    width:200px; height:200px; margin:100px auto;
+    border-radius:50%; background:#fff; border:6px solid #444;
+    display:flex; align-items:center; justify-content:center;
+    font-size:48px; font-weight:bold; color:#222;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+}
+button { font-size:20px; padding:10px 20px; margin:10px; }
+</style>
+</head>
+<body>
+
+<div id="timer">30s</div>
+<div id="centerCircle">?</div>
+<button id="startBtn">▶ 재생</button>
+<button id="stopBtn">⏸ 멈춤</button>
+<button id="nextBtn">⏭ 다음</button>
+<button id="replayBtn">🔁 다시 듣기</button>
+
+<script>
+// 5도권 키
+const keys = ["C","G","D","A","E","B","F#","C#","Ab","Eb","Bb","F"];
+const centerCircle = document.getElementById("centerCircle");
+const timerDisplay = document.getElementById("timer");
+
+let intervalId = null;
+let countdownId = null;
+let countdown = 30;
+let lastNotes = []; // 마지막 chord notes
+
+// 도미넌트7 화음 노트
+const dom7Pitches = {
+    "C": ["G4","B4","D5","F5"],
+    "G": ["D4","F#4","A4","C5"],
+    "D": ["A3","C#4","E4","G4"],
+    "A": ["E3","G#3","B3","D4"],
+    "E": ["B3","D#4","F#4","A4"],
+    "B": ["F#3","A#3","C#4","E4"],
+    "F#": ["C#4","E4","G#4","B4"],
+    "C#": ["G#3","C4","D#4","F#4"],
+    "Ab": ["Eb3","G3","Bb3","Db4"],
+    "Eb": ["Bb3","D4","F4","Ab4"],
+    "Bb": ["F3","A3","C4","Eb4"],
+    "F": ["C3","E3","G3","Bb3"]
+};
+
+// Tone.js Sampler 로 피아노 샘플 로드
+const pianoSampler = new Tone.Sampler({
+    urls: {
+        "C4": "C4.mp3",
+        "D#4": "Ds4.mp3",
+        "F#4": "Fs4.mp3",
+        "A4": "A4.mp3"
+    },
+    baseUrl: "https://tonejs.github.io/audio/salamander/",
+    onload: () => console.log("피아노 샘플 로딩 완료")
+}).toDestination();
+
+// 랜덤 키 표시 + 플레이
+function playRandomKey() {
+    const randomIndex = Math.floor(Math.random()*keys.length);
+    const key = keys[randomIndex];
+    centerCircle.innerText = key;
+    countdown = 30;
+    timerDisplay.innerText = countdown+"s";
+    playDom7(key);
+}
+
+// 도미넌트7 화음 재생 5초
+function playDom7(key) {
+    const notes = dom7Pitches[key];
+    lastNotes = notes;
+    Tone.loaded().then(() => {
+        pianoSampler.triggerAttackRelease(notes, 5);
+    });
+}
+
+// 다시 듣기
+function replayLast() {
+    if(lastNotes.length) {
+        Tone.loaded().then(() => {
+            pianoSampler.triggerAttackRelease(lastNotes, 5);
+        });
+    }
+}
+
+function startCountdown() {
+    clearInterval(countdownId);
+    countdownId = setInterval(() => {
+        countdown--;
+        if(countdown<=0) countdown=0;
+        timerDisplay.innerText = countdown+"s";
+    },1000);
+}
+
+function startAuto() {
+    if(intervalId) return;
+    playRandomKey();
+    startCountdown();
+    intervalId = setInterval(playRandomKey, 30000);
+}
+
+function stopAuto() {
+    clearInterval(intervalId);
+    intervalId = null;
+    clearInterval(countdownId);
+    countdownId = null;
+}
+
+function nextKey() {
+    playRandomKey();
+    startCountdown();
+}
+
+document.getElementById("startBtn").addEventListener("click", () => {
+    Tone.start(); // 사용자 터치로 활성화
+    startAuto();
+});
+document.getElementById("stopBtn").addEventListener("click", stopAuto);
+document.getElementById("nextBtn").addEventListener("click", nextKey);
+document.getElementById("replayBtn").addEventListener("click", replayLast);
+
+</script>
+
+</body>
+</html>
